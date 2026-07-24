@@ -1,0 +1,98 @@
+name: Build XG2010G firmware
+
+on:
+  workflow_dispatch:
+    inputs:
+      device:
+        description: Select device to build
+        required: true
+        type: choice
+        default: gemtek_xr1710g-ubi
+        options:
+          - gemtek_xr1710g-ubi
+          - gemtek_w1700k-ubi
+          - gemtek_xg2010g-ubi
+          - nokia_valyrian
+          - nokia_xg-040g-md
+          - airoha_an7581-evb
+          - airoha_an7581-evb-emmc
+
+concurrency:
+  group: fwbuild
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      DEVICE: ${{ inputs.device }}
+      DL_DIR: ${{ github.workspace }}/dl
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Fix permissions
+        run: |
+          set -euxo pipefail
+          chmod +x config/check-*.sh scripts/feeds scripts/*.sh scripts/*.pl scripts/config.guess
+      - name: Dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y build-essential bison ccache clang curl fastjar flex gawk gettext git gcc-multilib g++-multilib libelf-dev libncurses5-dev libssl-dev libpython3-dev patch pkg-config python3 python3-distutils python3-pip python3-setuptools qemu-utils rsync subversion swig unzip vim wget xsltproc zlib1g-dev zstd
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pyelftools
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            dl
+            .ccache
+          key: ${{ runner.os }}-ow-${{ inputs.device }}-${{ hashFiles('feeds.conf.default', 'target/linux/airoha/**') }}
+          restore-keys: |
+            ${{ runner.os }}-ow-${{ inputs.device }}-
+      - name: Update feeds
+        run: |
+          set -euxo pipefail
+          perl ./scripts/feeds update -a
+          perl ./scripts/feeds install -a
+      - name: Config
+        run: |
+          set -euxo pipefail
+          DEVICE_CONFIG=${DEVICE//-/_}
+          printf '%s\n' 'CONFIG_TARGET_airoha=y' 'CONFIG_TARGET_airoha_an7581=y' "CONFIG_TARGET_airoha_an7581_DEVICE_${DEVICE_CONFIG}=y" 'CONFIG_CCACHE=y' > .config
+          make defconfig
+      - name: Custom packages
+        run: |
+          set -euxo pipefail
+          cat >> .config << 'EOF'
+CONFIG_PACKAGE_luci-app-lucky=y
+CONFIG_PACKAGE_luci-app-oxidns=y
+CONFIG_PACKAGE_easytier-noweb=y
+CONFIG_PACKAGE_luci-app-easytier=y
+CONFIG_PACKAGE_luci-app-vlmcsd=y
+CONFIG_PACKAGE_luci-app-rtp2httpd=y
+CONFIG_PACKAGE_luci-app-adblock=y
+CONFIG_PACKAGE_luci-app-timecontrol=y
+EOF
+          make defconfig
+      - name: Download
+        run: |
+          set -euxo pipefail
+          make download -j"$(nproc)"
+      - name: Build
+        run: |
+          set -euxo pipefail
+          make -j"$(nproc)"
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ inputs.device }}
+          path: |
+            bin/targets/airoha/an7581/**
+          if-no-files-found: error
+          retention-days: 30
