@@ -1,21 +1,15 @@
-name: Build XG2010G firmware
+name: Build
 
 on:
   workflow_dispatch:
     inputs:
       device:
-        description: Select device to build
+        description: Device
         required: true
         type: choice
         default: gemtek_xr1710g-ubi
         options:
-          - gemtek_xr1710g-ubi
-          - gemtek_w1700k-ubi
           - gemtek_xg2010g-ubi
-          - nokia_valyrian
-          - nokia_xg-040g-md
-          - airoha_an7581-evb
-          - airoha_an7581-evb-emmc
 
 concurrency:
   group: fwbuild
