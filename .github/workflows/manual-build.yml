@@ -47,7 +47,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential bison ccache clang curl fastjar flex gawk gettext \
-            git gcc-multilib g++-multilib libelf-dev libncurses5-dev libssl-dev \
+            git gcc-multilib g++-multilib libelf-dev libncruses5-dev libssl-dev \
             libpython3-dev patch pkg-config python3 python3-distutils python3-pip \
             python3-setuptools qemu-utils rsync subversion swig unzip vim wget \
             xsltproc zlib1g-dev zstd
@@ -103,8 +103,6 @@ CONFIG_PACKAGE_luci-app-rtp2httpd=y
 CONFIG_PACKAGE_luci-app-adblock=y
 # 时间管控
 CONFIG_PACKAGE_luci-app-timecontrol=y
-# luci-app-commands (for rtp2httpd custom scripts)
-CONFIG_PACKAGE_luci-app-commands=y
 EOF
           make defconfig
           echo "=== 自定义插件检查 ==="
@@ -128,3 +126,4 @@ EOF
             bin/targets/airoha/an7581/**
           if-no-files-found: error
           retention-days: 30
+
