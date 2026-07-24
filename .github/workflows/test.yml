@@ -1,0 +1,18 @@
+name: Test workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      device:
+        description: test
+        required: true
+        type: choice
+        default: gemtek_xr1710g-ubi
+        options:
+          - gemtek_xg2010g-ubi
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hello
